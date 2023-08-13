@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:todo/models/todo.dart';
-
 import 'login_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
@@ -14,6 +14,7 @@ class TodoListPage extends StatefulWidget {
 class _TodoListPageState extends State<TodoListPage> {
   final List<Todo> todos = [
     Todo(
+      uid: FirebaseAuth.instance.currentUser!.uid,
       title: "heloo",
       description: "vajno",
       completed: false,
@@ -21,6 +22,7 @@ class _TodoListPageState extends State<TodoListPage> {
       updatedAt: DateTime.now(),
     ),
     Todo(
+      uid: FirebaseAuth.instance.currentUser!.uid,
       title: "sds",
       description: "vasdsjno",
       completed: false,
@@ -41,8 +43,8 @@ class _TodoListPageState extends State<TodoListPage> {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text("Logout"),
-                  content: Text("Are you sure do you want to log out?"),
+                  title: const Text("Logout"),
+                  content: const Text("Are you sure do you want to log out?"),
                   actions: [
                     TextButton(
                       onPressed: () {
@@ -182,12 +184,13 @@ class _TodoFormPageState extends State<TodoFormPage> {
               ),
               // save
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (titleController.text.isEmpty) return;
 
                   if (widget.todo != null) {
                     // update
                     final todo = Todo(
+                      uid: FirebaseAuth.instance.currentUser!.uid,
                       title: titleController.text,
                       description: descriptionController.text,
                       completed: widget.todo!.completed,
@@ -198,12 +201,16 @@ class _TodoFormPageState extends State<TodoFormPage> {
                   } else {
                     // create
                     final todo = Todo(
+                      uid: FirebaseAuth.instance.currentUser!.uid,
                       title: titleController.text,
                       description: descriptionController.text,
                       completed: false,
                       createdAt: DateTime.now(),
                       updatedAt: DateTime.now(),
                     );
+                    await FirebaseFirestore.instance.collection("Todo").add(
+                          todo.toMap(),
+                        );
                     Navigator.pop(context, todo);
                   }
                 },
