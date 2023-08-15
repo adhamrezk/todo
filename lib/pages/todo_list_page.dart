@@ -4,6 +4,9 @@ import 'package:todo/models/todo.dart';
 import 'login_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
+
+
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
 
@@ -12,105 +15,40 @@ class TodoListPage extends StatefulWidget {
 }
 
 class _TodoListPageState extends State<TodoListPage> {
-  final List<Todo> todos = [
-    Todo(
-      uid: FirebaseAuth.instance.currentUser!.uid,
-      title: "heloo",
-      description: "vajno",
-      completed: false,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-    Todo(
-      uid: FirebaseAuth.instance.currentUser!.uid,
-      title: "sds",
-      description: "vasdsjno",
-      completed: false,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
-  ];
+  late List<Todo> todos = []; // Initialize an empty list
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTasks();
+  }
+
+  void fetchTasks() async {
+    var currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      var querySnapshot = await FirebaseFirestore.instance
+          .collection("Todo")
+          .where('uid', isEqualTo: currentUser.uid)
+          .get();
+
+      var tasks =
+          querySnapshot.docs.map((doc) => Todo.(doc.data())).toList();
+
+      setState(() {
+        todos = todos;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text("Todo List"),
-        actions: [
-          IconButton(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text("Logout"),
-                  content: const Text("Are you sure do you want to log out?"),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Cancel"),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        await FirebaseAuth.instance.signOut();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return const LoginPage();
-                            },
-                          ),
-                        );
-                      },
-                      child: const Text("Confirm"),
-                    ),
-                  ],
-                ),
-              );
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () async {
-          var result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) {
-                return const TodoFormPage();
-              },
-            ),
-          );
-          setState(() {
-            todos.add(result);
-          });
-        },
-      ),
+      // ... existing code
+
       body: ListView.builder(
         itemCount: todos.length,
         itemBuilder: (context, index) {
           return ListTile(
-            onTap: () async {
-              var result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return TodoFormPage(
-                      todo: todos[index],
-                    );
-                  },
-                ),
-              );
-
-              // update
-              setState(() {
-                todos[index] = result;
-              });
-            },
             title: Text(todos[index].title),
             subtitle: Text(todos[index].description ?? "no description"),
             leading: Checkbox(
@@ -127,10 +65,7 @@ class _TodoListPageState extends State<TodoListPage> {
                 color: Colors.red,
               ),
               onPressed: () {
-                setState(() {
-                  todos.remove(todos[index]);
-                  // todos.removeAt(index);
-                });
+                deleteTask(todos[index].uid);
               },
             ),
           );
@@ -138,7 +73,13 @@ class _TodoListPageState extends State<TodoListPage> {
       ),
     );
   }
+
+  void deleteTask(String taskId) async {
+    await FirebaseFirestore.instance.collection("Todo").doc(taskId).delete();
+    fetchTasks(); // Refresh the task list
+  }
 }
+
 
 class TodoFormPage extends StatefulWidget {
   final Todo? todo;
@@ -223,3 +164,4 @@ class _TodoFormPageState extends State<TodoFormPage> {
     );
   }
 }
+  //actually it's bullshit
